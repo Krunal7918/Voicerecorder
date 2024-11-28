@@ -14,11 +14,39 @@ const VoiceRecorder = () => {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Using WAV format for better compatibility
-      mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: 'audio/wav'
+      // First check if the browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('Your browser does not support audio recording');
+        return;
+      }
+
+      // Request microphone permission with explicit error handling
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true,
+        video: false // explicitly disable video to avoid confusion
+      }).catch((err) => {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          toast.error('Microphone permission was denied. Please allow microphone access and try again.');
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          toast.error('No microphone found. Please connect a microphone and try again.');
+        } else {
+          toast.error('Error accessing microphone: ' + err.message);
+        }
+        throw err;
       });
+
+      if (!stream) return;
+
+      // Try to use WAV format, fallback to general audio if not supported
+      let mimeType = 'audio/wav';
+      if (!MediaRecorder.isTypeSupported('audio/wav')) {
+        mimeType = 'audio/webm';
+      }
+
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType
+      });
+      
       chunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (e) => {
@@ -26,7 +54,7 @@ const VoiceRecorder = () => {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
         setRecordings(prev => [...prev, { url, name: `Recording ${timestamp}` }]);
@@ -35,9 +63,10 @@ const VoiceRecorder = () => {
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      toast.success('Recording started!');
     } catch (error) {
-      toast.error('Error accessing microphone');
-      console.error('Error:', error);
+      console.error('Recording error:', error);
+      // Error already handled in the catch block above
     }
   };
 
