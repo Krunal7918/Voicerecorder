@@ -15,7 +15,10 @@ const VoiceRecorder = () => {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      // Using WAV format for better compatibility
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType: 'audio/wav'
+      });
       chunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (e) => {
@@ -23,7 +26,7 @@ const VoiceRecorder = () => {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/mp3' });
+        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
         const url = URL.createObjectURL(blob);
         const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
         setRecordings(prev => [...prev, { url, name: `Recording ${timestamp}` }]);
@@ -59,7 +62,10 @@ const VoiceRecorder = () => {
       setIsPlaying(false);
     };
     
-    audio.play();
+    audio.play().catch(error => {
+      toast.error('Error playing audio');
+      console.error('Playback error:', error);
+    });
     setIsPlaying(true);
   };
 
@@ -73,7 +79,7 @@ const VoiceRecorder = () => {
   const downloadRecording = (url: string, name: string) => {
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${name}.mp3`;
+    a.download = `${name}.wav`;
     a.click();
   };
 
