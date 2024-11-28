@@ -4,7 +4,7 @@ import {Play, Pause, Download} from "lucide-react";
 import {toast} from "sonner";
 import {convertAudio} from "@/utils/audioConverter";
 import {createAppleMusicWav} from "@/utils/convertToAppleMusicWav";
-import {createAppleMusicAudio} from "@/utils/convertToAudioFormat";
+import {convertToAudioFormat} from "@/utils/convertToAudioFormat";
 
 interface AudioControlsProps {
   recording: {url: string; name: string; blob: Blob};
@@ -24,7 +24,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
       toast.info("Converting to MP3...");
       console.log("🚀 ~ downloadRecording ~ recording.blob:", recording.blob);
       // const mp3Blob = await convertAudio(recording.blob, "wav");
-      const mp3Blob = await createAppleMusicAudio(recording.blob, "caf");
+      const mp3Blob = await convertToAudioFormat(recording.blob, "m4a");
       // const mp3Blob = await createAppleMusicWav(recording.blob);
       const url = URL.createObjectURL(mp3Blob);
       const a = document.createElement("a");
